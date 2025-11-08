@@ -1,0 +1,12 @@
+const express = require('express');
+const router = express.Router();
+const activityController = require('../controllers/activity.controller');
+
+// ✅ CRUD Endpoints
+router.post('/', activityController.createActivity);
+router.get('/', activityController.getActivities);
+router.get('/:id', activityController.getActivityById);
+router.put('/:id', activityController.updateActivity);
+router.delete('/:id', activityController.deleteActivity);
+
+module.exports = router;
