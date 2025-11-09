@@ -1,10 +1,19 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import virtulab from "../assets/Virtulab.svg";
 import Header from "../web_components/Header_No_Navbar";
 import Footer from "../web_components/Footer";
 
 function Index() {
   const navigate = useNavigate();
+
+  // Check if user is authenticated and is a student
+  const token = localStorage.getItem("token");
+  const userRole = localStorage.getItem("userRoleId");
+
+  // If authenticated as student, redirect to dashboard
+  if (token && Number(userRole) === 3) {
+    return <Navigate to="/student/dashboard" replace />;
+  }
 
   const goToLogin = () => navigate("/login");
   const goToRegister = () => navigate("/register");
