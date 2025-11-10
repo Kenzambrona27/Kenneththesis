@@ -18,6 +18,7 @@ import Setting from "./pages/student/Setting";
 import InstructorDashboard from "./pages/instructor/InstructorDashboard"; // 🆕 placeholder
 import Content_Management from "./pages/instructor/ContentManagement"; // 🆕 placeholder
 import ActivityBuilder from "./pages/instructor/ActivityBuilder"; // 🆕 placeholder
+import SubClass from "./pages/instructor/SubClass";
 
 // 🧱 Other components/features
 import Body from "./web_components/Body";
@@ -93,6 +94,14 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={[2]}>
               <ActivityBuilder />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/instructor/subclass"
+          element={
+            <ProtectedRoute allowedRoles={[2]}>
+              <SubClass />
             </ProtectedRoute>
           }
         />

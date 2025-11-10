@@ -1,5 +1,5 @@
-import { useEffect, useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import Header from "../../web_components/Header";
 import Sidebar from "./Sidebar";
@@ -9,7 +9,7 @@ function DashboardPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [classes, setClasses] = useState([]);
   const navigate = useNavigate();
-  const isDraggingRef = useRef(false);
+  const location = useLocation();
 
   // ✅ ADDED: State for the modal and its form fields
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -30,8 +30,20 @@ function DashboardPage() {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
+        const storedClasses =
+          JSON.parse(localStorage.getItem("tempCreatedClasses") || "[]") || [];
+        const fetchedClasses = res.data.classes || [];
+        const mergedClasses = [
+          ...fetchedClasses.filter((remote) => {
+            const remoteKey = remote.id ?? remote.code;
+            return !storedClasses.some(
+              (stored) => (stored.id ?? stored.code) === remoteKey
+            );
+          }),
+          ...storedClasses,
+        ];
         setMessage(res.data.message);
-        setClasses(res.data.classes || []);
+        setClasses(mergedClasses);
       })
       .catch((err) => {
         console.error(err);
@@ -46,6 +58,28 @@ function DashboardPage() {
     navigate("/login");
   };
 
+  useEffect(() => {
+    if (location.state?.newClass) {
+      const newClassKey =
+        location.state.newClass.id ?? location.state.newClass.code;
+      setClasses((prevClasses) => {
+        const exists = prevClasses.some(
+          (cls) =>
+            (cls.id ?? cls.code) === newClassKey
+        );
+        const updated = exists
+          ? prevClasses
+          : [...prevClasses, location.state.newClass];
+        localStorage.setItem(
+          "tempCreatedClasses",
+          JSON.stringify(updated)
+        );
+        return updated;
+      });
+      navigate("/instructor/dashboard", { replace: true, state: {} });
+    }
+  }, [location.state, navigate]);
+
   // ⛔ REMOVED: This function is no longer needed
   // const goToCreateClass = () => {
   //   navigate("/instructor/activitybuilder");
@@ -54,8 +88,23 @@ function DashboardPage() {
   // ✅ ADDED: Function to handle the modal's "Create" button
   const handleCreateClass = () => {
     // This is where you'll send the data to your backend
-    const classData = { className, section, subject, room };
+    const generatedId = Date.now();
+    const classData = {
+      id: generatedId,
+      className,
+      section,
+      subject,
+      room,
+      title: className || "Untitled Class",
+      description: section || "",
+      code: Math.random().toString(36).slice(2, 8).toUpperCase(),
+    };
     console.log("Creating class with data:", classData);
+    const storedClasses =
+      JSON.parse(localStorage.getItem("tempCreatedClasses") || "[]") || [];
+    const updatedClasses = [...storedClasses, classData];
+    localStorage.setItem("tempCreatedClasses", JSON.stringify(updatedClasses));
+    navigate("/instructor/subclass", { state: { classData } });
 
     // --- Example of how to send it to the backend ---
     // const token = localStorage.getItem("token");
@@ -128,8 +177,13 @@ function DashboardPage() {
             {/* Render Class Cards */}
             {classes.map((cls) => (
               <div
-                key={cls.id}
-                className="w-64 h-40 bg-white shadow-md rounded-xl border border-gray-200 p-4 flex flex-col justify-between hover:shadow-lg transition-shadow cursor-pointer"
+                key={cls.id || cls.code || cls.title}
+                onClick={() =>
+                  navigate("/instructor/subclass", {
+                    state: { classData: cls },
+                  })
+                }
+                className="w-72 h-56 bg-white shadow-lg rounded-2xl border border-blue-50 overflow-hidden hover:shadow-xl transition-shadow cursor-pointer flex flex-col"
               >
                 <div>
                   <h3 className="text-lg font-semibold text-gray-800 mb-2">
@@ -184,7 +238,7 @@ function DashboardPage() {
                     id="class-name"
                     value={className}
                     onChange={(e) => setClassName(e.target.value)}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-400 bg-white"
                     required
                   />
                   <p className="text-xs text-gray-500 mt-1">*Required</p>
@@ -201,7 +255,7 @@ function DashboardPage() {
                     id="section"
                     value={section}
                     onChange={(e) => setSection(e.target.value)}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-400 bg-white"
                   />
                 </div>
                 <div>
@@ -215,8 +269,8 @@ function DashboardPage() {
                     type="text"
                     id="subject"
                     value={subject}
-                    onChange={(e) => setSubject(e.gtarget.value)}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    onChange={(e) => setSubject(e.target.value)}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-400 bg-white"
                   />
                 </div>
                 <div>
@@ -231,7 +285,7 @@ function DashboardPage() {
                     id="room"
                     value={room}
                     onChange={(e) => setRoom(e.target.value)}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-400 bg-white"
                   />
                 </div>
               </div>
